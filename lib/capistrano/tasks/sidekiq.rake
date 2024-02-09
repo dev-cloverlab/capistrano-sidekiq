@@ -1,29 +1,3 @@
-namespace :load do
-  task :defaults do
-    set :sidekiq_default_hooks, true
-
-    set :sidekiq_pid, -> { File.join(shared_path, 'tmp', 'pids', 'sidekiq.pid') }
-    set :sidekiq_env, -> { fetch(:rack_env, fetch(:rails_env, fetch(:stage))) }
-    set :sidekiq_log, -> { File.join(shared_path, 'log', 'sidekiq.log') }
-    set :sidekiq_timeout, 10
-    set :sidekiq_roles, fetch(:sidekiq_role, :app)
-    set :sidekiq_processes, 1
-    set :sidekiq_options_per_process, nil
-    set :sidekiq_user, nil
-    # Rbenv, Chruby, and RVM integration
-    set :rbenv_map_bins, fetch(:rbenv_map_bins).to_a.concat(%w[sidekiq sidekiqctl])
-    set :rvm_map_bins, fetch(:rvm_map_bins).to_a.concat(%w[sidekiq sidekiqctl])
-    set :chruby_map_bins, fetch(:chruby_map_bins).to_a.concat(%w[sidekiq sidekiqctl])
-    # Bundler integration
-    set :bundle_bins, fetch(:bundle_bins).to_a.concat(%w[sidekiq sidekiqctl])
-    # Init system integration
-    set :init_system, -> { nil }
-    # systemd integration
-    set :service_unit_name, "sidekiq-#{fetch(:stage)}.service"
-    set :upstart_service_name, "sidekiq"
-  end
-end
-
 namespace :deploy do
   before :starting, :check_sidekiq_hooks do
     invoke 'sidekiq:add_default_hooks' if fetch(:sidekiq_default_hooks)
@@ -32,8 +6,8 @@ end
 
 namespace :sidekiq do
   task :add_default_hooks do
-    after 'deploy:starting',  'sidekiq:quiet'
-    after 'deploy:updated',   'sidekiq:stop'
+    after 'deploy:starting', 'sidekiq:quiet' if Rake::Task.task_defined?('sidekiq:quiet')
+    after 'deploy:updated', 'sidekiq:stop'
     after 'deploy:published', 'sidekiq:start'
     after 'deploy:failed', 'sidekiq:restart'
   end
